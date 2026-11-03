@@ -113,7 +113,7 @@ NO_WRAP     INC   Printed        ; Count displayed characters
             BNE   FRAME 
  
             CLR   Shift          ; Restart full message 
-            BRA   OUT 
+            BRA   FRAME 
 ;-------------------------------------------------- 
 ; Delay between scrolling frames 
 ;-------------------------------------------------- 
