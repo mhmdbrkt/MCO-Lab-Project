@@ -61,6 +61,8 @@ mainLoop:
             INX                     ; Skip the space character (' ') in the table
             MOVB  #$02,PUCR        
             LDAA  #%11000000                        
+            MOVB  #$01, PORTA
+            MOVB  #$01, DDRA
             
             
             
@@ -84,6 +86,7 @@ WAIT_SW:
             BRA   SHOW_CORRECT
 
 SHOW_CORRECT:
+            MOVB  #$01,PORTA
             LDAA  #%00000001        ; Clear display instruction (resets cursor to line 1)
             JSR   SENDINST
 
