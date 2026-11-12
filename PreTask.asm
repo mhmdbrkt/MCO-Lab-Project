@@ -11,7 +11,8 @@ ROMStart    EQU  $4000              ; absolute address to place code/constant da
             ORG RAMStart
 DATA        DS.B 1
 
-pass1       DC.B "Enter Password"   ;
+pass1       DC.B "Enter Password"   ; "Enter" (5) + " " (1) + "Password" (8)
+msg_ok      DC.B "Correct"          ; 7 characters total
 
 ; code section
             ORG   ROMStart
@@ -21,10 +22,11 @@ _Startup:
             LDS   #RAMEnd+1         ; initialize the stack pointer
             CLI                     ; enable interrupts
 
-;**************************************************************
-;*            Hardware & LCD Initialization                   *
-;**************************************************************
-            MOVB  #$F0, DDRB        ; Configure upper 4 bits of PORTB as outputs (LEDs)
+;           Hardware & LCD Initialization                   
+
+            MOVB  #$F0, DDRB        ; Upper 4 bits of PORTB = outputs (LEDs)
+                                    ; Lower 4 bits of PORTB = inputs (DIP switches 1-4)
+            BSET  PUCR, #$02        ; Enable internal pull-ups on Port B inputs
             MOVB  #$FF, PORTB       ; Turn all LEDs OFF initially (active-low)
                                
             MOVB  #$10, MODRR       ; Route SPI0 to Port M
@@ -49,29 +51,50 @@ _Startup:
             LDAA  #%00001110        ; Display ON, cursor ON, blink OFF
             JSR   SENDINST 
 
-;**************************************************************
-;*                 Main Program                               *
-;**************************************************************
+;                 Main Program                               
+
 mainLoop:
             LDX   #pass1            ; Load starting address of string
             LDY   #5                ; Print first 5 characters ("Enter")
             JSR   PRINT_CHAR
 
             INX                     ; Skip the space character (' ') in the table
-
-            LDAA  #%11000000        ; Move cursor to beginning of second line ($C0)
-            PSHX                    ; Save pointer X before calling SENDINST/Delay
+            MOVB  #$02,PUCR        
+            LDAA  #%11000000                        
+            
+            
+            
+            ; Move cursor to beginning of second line ($C0)
+            PSHX                    ; Save pointer X before calling SENDINST
             JSR   SENDINST
             PULX                    ; Restore pointer X
 
             LDY   #8                ; Print remaining 8 characters ("Password")
             JSR   PRINT_CHAR
 
-DONE:       BRA   DONE              ; Infinite loop to prevent crashing
 
-;**************************************************************
-;*                 Print String Subroutine                    *
-;**************************************************************
+;                 Check DIP Switch 1 (Active Low)            
+
+WAIT_SW:
+            LDAA  PORTB
+            ANDA  #$0F         ; Keep only PB3–PB0
+            EORA  #$0F         ; Convert active-low inputs to 1 = ON
+            CMPA  #$01         ; password
+            BNE   WAIT_SW
+            BRA   SHOW_CORRECT
+
+SHOW_CORRECT:
+            LDAA  #%00000001        ; Clear display instruction (resets cursor to line 1)
+            JSR   SENDINST
+
+            LDX   #msg_ok           ; Load starting address of "Correct"
+            LDY   #7                ; Load character count ("Correct" = 7 chars)
+            JSR   PRINT_CHAR
+
+DONE:       BRA   DONE              ; Halt safely after displaying "Correct"
+
+;                 Print String Subroutine                    
+
 PRINT_CHAR:
             LDAA  1,X+              ; Read the current character, then advance X
             PSHX                    ; Save pointer X (Delay overwrites X)
@@ -81,15 +104,16 @@ PRINT_CHAR:
             BNE   PRINT_CHAR        ; Repeat until Y = 0
             RTS                     ; Return to main program
 
-;**************************************************************
-;*                 SPI & LCD Subroutines                      *
-;**************************************************************
-SENDSPI:    PSHA                    ; Save Accumulator A
-            STAA  SPI0DR            ; Start SPI transmission
-            BRCLR SPI0SR, #$80, *   ; Wait until SPIF (bit 7) is set
-            MOVB  SPI0DR, DATA      ; Read SPI0DR to clear the SPIF flag
-            PULA                    ; Restore Accumulator A
-            RTS            
+;                 SPI & LCD Subroutines                      
+
+SENDSPI:
+SPI_READY:
+            BRCLR SPI0SR, #$20, SPI_READY ; Wait for SPTEF before writing
+            STAA  SPI0DR
+SPI_DONE:
+            BRCLR SPI0SR, #$80, SPI_DONE  ; Wait for SPIF
+            MOVB  SPI0DR, DATA            ; Read data to clear SPIF
+            RTS
             
 SENDINST:   TAB                     ; Save original byte in B
             LSRA                    ; Shift upper nibble to lower 4 bits
@@ -133,9 +157,8 @@ SENDDATA:   TAB                     ; Save original byte in B
             JSR   Delay
             RTS
 
-;**************************************************************
-;*                 Delay Subroutines                          *
-;**************************************************************
+;                Delay Subroutines                          
+
 Delay:      LDX   #4231             ; Load X register with delay count
 AGAIN:      PSHB                    ; Burn clock cycles
             PULB
@@ -147,8 +170,7 @@ AGAIN:      PSHB                    ; Burn clock cycles
             BNE   AGAIN             ; Repeat until X = 0
             RTS                     ; Return from subroutine
 
-;**************************************************************
-;*                 Interrupt Vectors                          *
-;**************************************************************
+;                 Interrupt Vectors                          
+
             ORG   $FFFE
             DC.W  Entry             ; Reset Vector
