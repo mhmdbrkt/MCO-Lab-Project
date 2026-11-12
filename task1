@@ -1,0 +1,47 @@
+
+; Task 1 - Potentiometer controls LED shifting speed
+
+TASK1       MOVB  #$C0,ATD0CTL2
+            MOVB  #$08,ATD0CTL3
+            MOVB  #$80,ATD0CTL4
+            MOVB  #$A5,ATD0CTL5
+
+            MOVB  #$F0,DDRB       ; LEDs as outputs
+            MOVB  #$EF,PORTB      ; Turn ON LED1
+
+CHECK       MOVB  #$A5,ATD0CTL5  ; Start conversion
+            BRCLR ATD0STAT0,#$80,CHECK1
+
+CHECK1      BRCLR ATD0STAT0,#$80,CHECK1
+            LDAA  ATD0DR0L       ; Read potentiometer
+
+            CMPA  #63
+            BLS   SPEED1
+
+            CMPA  #127
+            BLS   SPEED2
+
+            CMPA  #191
+            BLS   SPEED3
+
+            BSR   DELAY4
+            BRA   SHIFT
+
+SPEED1      BSR   DELAY1
+            BRA   SHIFT
+
+SPEED2      BSR   DELAY2
+            BRA   SHIFT
+
+SPEED3      BSR   DELAY3
+
+SHIFT       LDAA  PORTB
+            LSRA                   ; Shift LED to the right
+            ORAA  #$0F
+            STAA  PORTB
+
+            CMPA  #$7F
+            BNE   CHECK
+
+            MOVB  #$EF,PORTB      ; Restart from LED1
+            BRA   CHECK
