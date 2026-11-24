@@ -1,0 +1,5 @@
+Photo resistor LED: 37 ( 12th pin from down on the left)
+Correct LED: 39 (11th pin from down on the left)
+Ground: 3 (2nd one from  up on the left)
+Push buttons: pin 2 to pin 9 ( 1st pin from up to the right to 5th pin from up to the left)
+DON'T FORGET COMMON GROUND !
