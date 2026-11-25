@@ -272,7 +272,7 @@ WAIT200:    BRCLR MCFLG,#$80,WAIT200
 FOREVER:    BRA   FOREVER
 
 ; MC timer ISR: 20 ticks Task1, 40 ticks Task2+3, repeat
-MCISR_K7:   MOVB  #$80,MCFLG
+MYISR1:   MOVB  #$80,MCFLG
             INC   TICKS
             LDAA  MODE
             CMPA  #1
@@ -291,7 +291,7 @@ MC_TASK23:  LDAA  TICKS
 MC_DONE:    RTI
 
 ; IRQ on PP0, triggered by PB1
-PB1_ISR:    MOVB  #1,STOPFLAG
+MYISR2:    MOVB  #1,STOPFLAG
             RTI
 
 ; Send Y characters from address X, using indexed mode
@@ -420,9 +420,9 @@ VALUE_MSG   DC.B  'Val:'
 ENDMSG      DC.B  'Program has Ended'
 
             ORG   $FFCA
-            DC.W  MCISR_K7
+            DC.W  MYISR1
             ORG   $FFF2
-            DC.W  PB1_ISR
+            DC.W  MYISR2
             ORG   $FFFE
             DC.W  Entry
             END
