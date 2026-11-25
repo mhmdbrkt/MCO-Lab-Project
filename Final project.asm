@@ -70,8 +70,8 @@ _Startup:
             LDAA  #$0E
             JSR   SENDINST
 
-; Password display from MSG_T5 via indexed addressing
-            LDX   #MSG_T5
+; Password display from PASS via indexed addressing
+            LDX   #PASS
             LDY   #5
             JSR   PRINT_CHAR
             INX                  ; skip space
@@ -414,7 +414,7 @@ D50_LOOP:   PSHB
 
 ; Required ROM labels
 PWD_Q3      DC.B  1
-MSG_T5      DC.B  'Enter Password'
+PASS      DC.B  'Enter Password'
 OKMSG       DC.B  'CORRECT'
 VALUE_MSG   DC.B  'Val:'
 ENDMSG      DC.B  'Program has Ended'
